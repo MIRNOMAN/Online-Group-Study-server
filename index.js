@@ -73,7 +73,7 @@ async function run() {
        })
 
 
-        app.get('/assignments',verifyToken, async(req, res) =>{
+        app.get('/assignments', async(req, res) =>{
 
            let queryObj = {};
            const level = req.query.level;
@@ -112,6 +112,19 @@ async function run() {
           const result = await assignmentCollection.deleteOne(query);
           res.send(result);
         })
+       
+        // assignment details
+        
+        app.get('/details/:id', async(req, res) => {
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)}
+            const result = await assignmentCollection.findOne(query);
+            res.send(result);
+            console.log(result);
+          })
+      
+
+
 
         // update assignment
 
