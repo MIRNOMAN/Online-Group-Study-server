@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const  jwt = require('jsonwebtoken');
-const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
@@ -11,7 +11,7 @@ app.use(cors({
     origin: [
         'http://localhost:5173'
     ],
-    credentials: true
+    credentials: true,
 }));
 app.use(express.json());
 app.use(cookieParser());
@@ -30,7 +30,7 @@ const client = new MongoClient(uri, {
     }
 });
 
-const verifyToken = (req, res, next) =>{
+const verifyToken = (req, res, next) =>{  
     const token = req?.cookies?.token;
     // console.log('Verifying token', token);
     if(!token){
@@ -51,6 +51,7 @@ async function run() {
         await client.connect();
 
         const assignmentCollection = client.db('assignmentDB').collection('allAssignments');
+        const takeAssignmentCollection = client.db('assignmentDB').collection('takeAllAssignments');
        
 
        app.post('/jwt', async(req, res) =>{
@@ -109,8 +110,15 @@ async function run() {
         app.delete('/assignments/:id', async (req, res) => {
           const id = req.params.id;
           const query = {_id: new ObjectId(id)};
+          const userEmail = req.query?.userEmail 
+         const productEmail = req.query?.productEmail 
+         if(userEmail == productEmail) {
           const result = await assignmentCollection.deleteOne(query);
           res.send(result);
+         }else{
+          res.send('product and email not match')
+         }
+         
         })
        
         // assignment details
@@ -120,7 +128,7 @@ async function run() {
             const query = {_id: new ObjectId(id)}
             const result = await assignmentCollection.findOne(query);
             res.send(result);
-            console.log(result);
+            console.log(verifyToken);
           })
       
 
@@ -158,7 +166,81 @@ async function run() {
             const result = await assignmentCollection.updateOne(filter, update, options)
             res.send(result)
           })
+
+
+        //   submitted assignment collection
+
+        app.get('/submittedAssignment', async ( req, res ) => {
+          console.log('token owner', req.user)
+           const query = {status : 'pending'};
+            const result = await takeAssignmentCollection.find(query).toArray();
+            res.send(result);
+          })
+
+          app.get('/mySubmittedAssignment', async ( req, res ) => {
+            console.log('token owner', req.user)
+             const query = {status : 'complete'};
+              const result = await takeAssignmentCollection.find(query).toArray();
+              res.send(result);
+            })
       
+          app.post('/submittedAssignment', async ( req, res ) => {
+            const product = req.body;
+            const result = await takeAssignmentCollection.insertOne(product)
+            res.send(result);
+          })
+
+           // status update
+          app.patch('/submittedAssignment', async (req, res) => {
+            const user = req.body;
+            const filter = {email : user.email};
+            const updateDoc = {
+              $set:{
+                status : user.status,
+                giveMark: user.giveMark,
+                feedback: user.feedback
+              }
+            }
+            const result = await takeAssignmentCollection.updateOne(filter,updateDoc);
+            res.send(result);
+          })
+
+          // assignment marks
+
+          app.get('/submittedAssignment/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)}
+            const result = await takeAssignmentCollection.findOne(query)
+            res.send(result)
+            console.log(result)
+          })
+      
+      
+      
+          // app.put('/submittedAssignment/:id', async (req, res) =>{
+          //   const id = req.params.id;
+          //   const filter = {_id: new ObjectId(id)}
+          //   const options = {upsert: true}
+          //   const updateAsgmt = req.body;
+          //   const update = {
+          //     $set :{
+               
+          //       title: updateAsgmt.title,
+          //       level: updateAsgmt.level,
+          //       marks: updateAsgmt.marks,
+          //       date: updateAsgmt.date,
+          //       description: updateAsgmt.description,
+          //       photo: updateAsgmt.photo
+              
+                
+          //     }
+          //   }
+          //   const result = await assignmentCollection.updateOne(filter, update, options)
+          //   res.send(result)
+          // })
+      
+
+         
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
