@@ -9,7 +9,10 @@ const port = process.env.PORT || 5000;
 
 app.use(cors({
   origin: [
-    'http://localhost:5173'
+    // 'http://localhost:5173',
+    'https://car-doctor-project-6e8a6.web.app',
+    
+
   ],
   credentials: true,
 }));
@@ -48,7 +51,7 @@ const verifyToken = (req, res, next) => {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const assignmentCollection = client.db('assignmentDB').collection('allAssignments');
     const takeAssignmentCollection = client.db('assignmentDB').collection('takeAllAssignments');
@@ -58,21 +61,14 @@ async function run() {
       const user = req.body;
       console.log('user for token', user);
       const token = jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '1h' })
-      res
-        .cookie('token', token, {
-          httpOnly: true,
-          secure: true,
-          sameSite: 'none',
-        })
-        .send({ success: true });
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+    })
     })
 
-    app.post('/logout', async (req, res) => {
-      const user = req.body;
-      console.log('logout user', user);
-      res.clearCookie('token', { maxAge: 0 }).send({ success: true });
-    })
-
+    
 
     app.get('/assignments', async (req, res) => {
 
@@ -174,21 +170,21 @@ async function run() {
 
     //   submitted assignment collection
 
-    app.get('/submittedAssignment', verifyToken, async (req, res) => {
+    app.get('/submittedAssignment',  async (req, res) => {
       // console.log('token owner', req.user)
-      if (req.query.email !== req.user.email) {
-        return res.status(404).send({ message: 'forbidden access token' })
-      }
+      // if (req.query.email !== req.user.email) {
+      //   return res.status(404).send({ message: 'forbidden access token' })
+      // }
       const query = { status: 'pending' };
       const result = await takeAssignmentCollection.find(query).toArray();
       res.send(result);
     })
 
-    app.get('/mySubmittedAssignment', verifyToken, async (req, res) => {
+    app.get('/mySubmittedAssignment', async (req, res) => {
       console.log('token owner', req.user)
-      if (req.query.email !== req.user.email) {
-        return res.status(404).send({ message: 'forbidden access token' })
-      }
+      // if (req.query.email !== req.user.email) {
+      //   return res.status(404).send({ message: 'forbidden access token' })
+      // }
       const query = { status: 'complete' };
       const result = await takeAssignmentCollection.find(query).toArray();
       res.send(result);
