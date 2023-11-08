@@ -103,6 +103,9 @@ async function run() {
 
         app.post('/assignments', async (req, res) => {
             const newdata = req.body;
+          //   if(req.query.email !== req.user.email){
+          //     return res.status(404).send({message:'forbidden access token'})
+          // }
             const result = await assignmentCollection.insertOne(newdata);
             res.send(result);
         })
@@ -125,6 +128,7 @@ async function run() {
         
         app.get('/details/:id', async(req, res) => {
             const id = req.params.id;
+            
             const query = {_id: new ObjectId(id)}
             const result = await assignmentCollection.findOne(query);
             res.send(result);
@@ -170,15 +174,21 @@ async function run() {
 
         //   submitted assignment collection
 
-        app.get('/submittedAssignment', async ( req, res ) => {
-          console.log('token owner', req.user)
+        app.get('/submittedAssignment',verifyToken, async ( req, res ) => {
+          // console.log('token owner', req.user)
+          if(req.query.email !== req.user.email){
+            return res.status(404).send({message:'forbidden access token'})
+        }
            const query = {status : 'pending'};
             const result = await takeAssignmentCollection.find(query).toArray();
             res.send(result);
           })
 
-          app.get('/mySubmittedAssignment', async ( req, res ) => {
+          app.get('/mySubmittedAssignment',verifyToken, async ( req, res ) => {
             console.log('token owner', req.user)
+            if(req.query.email !== req.user.email){
+              return res.status(404).send({message:'forbidden access token'})
+          }
              const query = {status : 'complete'};
               const result = await takeAssignmentCollection.find(query).toArray();
               res.send(result);
@@ -193,12 +203,13 @@ async function run() {
            // status update
           app.patch('/submittedAssignment', async (req, res) => {
             const user = req.body;
+            console.log(user);
             const filter = {email : user.email};
             const updateDoc = {
               $set:{
                 status : user.status,
                 giveMark: user.giveMark,
-                feedback: user.feedback
+                feedback: user.feedback,
               }
             }
             const result = await takeAssignmentCollection.updateOne(filter,updateDoc);
